@@ -420,6 +420,63 @@ func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper open
 			if sumAmount_BI.Cmp(big.NewInt(0)) <= 0 {
 				continue
 			}
+		} else {
+			bnbAmount, err := decoder.wm.RpcClient.getBalance(addrBalance.Address, "BNB")
+			if err != nil {
+				return nil, openwallet.Errorf(openwallet.ErrUnknownException, "[%s] Failed to get BNB balance for fee!", sumRawTx.Account.AccountID)
+			}
+			if bnbAmount.Balance.Cmp(fee) < 0 {
+				var feesSupportAccount *openwallet.AssetsAccount
+				if feesAcount := sumRawTx.FeesSupportAccount; feesAcount != nil {
+					account, supportErr := wrapper.GetAssetsAccountInfo(feesAcount.AccountID)
+					if supportErr != nil {
+						return nil, openwallet.Errorf(openwallet.ErrAccountNotFound, "can not find fees support account")
+					}
+
+					feesSupportAccount = account
+				} else {
+					return nil, openwallet.Errorf(openwallet.ErrAccountNotFound, "can not find fees support account")
+				}
+				//创建一笔手续费交易单
+
+				rawTx := &openwallet.RawTransaction{
+					Coin:    openwallet.Coin{
+						Symbol:"BNB",
+						IsContract:true,
+						Contract:openwallet.SmartContract{
+							Address:"BNB",
+							Decimals:8,
+						},
+					},
+					Account: feesSupportAccount,
+					To: map[string]string{
+						addrBalance.Address: convertToAmount(fee.Uint64(), 8),
+					},
+					Required: 1,
+					ExtParam:sumRawTx.ExtParam,
+				}
+
+				createErr := decoder.CreateBNBRawTransaction(
+					wrapper,
+					rawTx)
+				if createErr != nil {
+					return nil, createErr
+				} else {
+					txBytes, _ := hex.DecodeString(rawTx.RawHex)
+					trx, _ := binancechainTransaction.DecodeRawTransaction(txBytes)
+					sequence := trx.Signatures[0].Sequence + 1
+
+					hash := trx.Signatures[0].Address().Bytes()
+
+					address := addressEncoder.AddressEncode(hash, addressEncoder.BNB_mainnetAddress)
+
+					wrapper.SetAddressExtParam(address, decoder.wm.FullName(), sequence)
+				}
+
+				//创建成功，添加到队列
+				rawTxArray = append(rawTxArray, rawTx)
+				continue
+			}
 		}
 
 
