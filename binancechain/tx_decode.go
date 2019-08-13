@@ -438,6 +438,7 @@ func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper open
 				sumRawTx.SummaryAddress: sumAmount,
 			},
 			Required: 1,
+			ExtParam:sumRawTx.ExtParam,
 		}
 
 		createErr := decoder.createRawTransaction(
@@ -495,7 +496,6 @@ func (decoder *TransactionDecoder) createRawTransaction(wrapper openwallet.Walle
 		sequence = uint64(sequenceChain)
 	}
 	memo := rawTx.GetExtParam().Get("memo").String()
-
 
 	emptyTrans, hash, err := binancechainTransaction.CreateEmptyTransactionAndHash(from, to, rawTx.Coin.Contract.Address, int64(amount), accountNumber, int64(sequence), tx.Source, memo)
 	if err != nil {
