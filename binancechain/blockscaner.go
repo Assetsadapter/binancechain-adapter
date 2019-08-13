@@ -700,47 +700,60 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 					feeCharge.IsMemo = true
 					feeCharge.Memo = trx.Memo
 					feeCharge.TxType = 1
+					if denom == "BNB" {
+						ed := result.extractData["BNB:"+feeSourceKey]
+						if ed == nil {
+							ed = openwallet.NewBlockExtractData()
+							result.extractData["BNB:"+feeSourceKey] = ed
+						}
 
-					ed := result.extractData["fee:"+feeSourceKey]
-					if ed == nil {
-						ed = openwallet.NewBlockExtractData()
-						result.extractData["fee:"+feeSourceKey] = ed
-					}
+						ed.TxInputs = append(ed.TxInputs, &feeCharge)
+						ed.Transaction.Fees = strconv.FormatUint(fee, 10)
 
-					ed.TxInputs = append(ed.TxInputs, &feeCharge)
+						feeNotified = true
+					} else {
+						ed := result.extractData["fee:"+feeSourceKey]
+						if ed == nil {
+							ed = openwallet.NewBlockExtractData()
+							result.extractData["fee:"+feeSourceKey] = ed
+						}
 
-					tx := &openwallet.Transaction{
-						From:[]string{detail.From[0].Address + ":" + feeStr},
-						To:[]string{""},
-						Amount:feeStr,
-						Fees:"0",
-						Coin:openwallet.Coin{
-							Symbol:bs.wm.Symbol(),
-							IsContract:true,
-							ContractID:openwallet.GenContractID(bs.wm.Symbol(), "BNB"),
-							Contract:openwallet.SmartContract{
+						ed.TxInputs = append(ed.TxInputs, &feeCharge)
+
+						tx := &openwallet.Transaction{
+							From:[]string{detail.From[0].Address + ":" + feeStr},
+							To:[]string{""},
+							Amount:feeStr,
+							Fees:"0",
+							Coin:openwallet.Coin{
 								Symbol:bs.wm.Symbol(),
+								IsContract:true,
 								ContractID:openwallet.GenContractID(bs.wm.Symbol(), "BNB"),
-								Address:"BNB",
-								Token:"",
-								Name:bs.wm.FullName(),
-								Decimals:0,
+								Contract:openwallet.SmartContract{
+									Symbol:bs.wm.Symbol(),
+									ContractID:openwallet.GenContractID(bs.wm.Symbol(), "BNB"),
+									Address:"BNB",
+									Token:"",
+									Name:bs.wm.FullName(),
+									Decimals:0,
+								},
 							},
-						},
-						BlockHash:blockhash,
-						BlockHeight:trx.BlockHeight,
-						TxID:trx.TxID,
-						Decimal:0,
-						Status:"1",
-						IsMemo:true,
-						Memo:trx.Memo,
-						TxType:1,
-					}
-					wxID := openwallet.GenTransactionWxID(tx)
-					tx.WxID = wxID
-					ed.Transaction = tx
+							BlockHash:blockhash,
+							BlockHeight:trx.BlockHeight,
+							TxID:trx.TxID,
+							Decimal:0,
+							Status:"1",
+							IsMemo:true,
+							Memo:trx.Memo,
+							TxType:1,
+						}
+						wxID := openwallet.GenTransactionWxID(tx)
+						tx.WxID = wxID
+						ed.Transaction = tx
 
-					feeNotified = true
+						feeNotified = true
+					}
+
 				}
 
 				for _, toChk := range detail.To {

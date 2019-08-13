@@ -63,7 +63,9 @@ func TestSubscribeAddress(t *testing.T) {
 			//"bnb1r3rf8cj9t2w6v0za3ufyp03as3nv6rjxteku6g": "sender",
 			//"bnb1dtp99kqjlncvcdtqzyqshtsvd3aqc49emtula8": "sender",
 			//"bnb1emr80rnwsldlsmy67arzk3ta5pvtke0xkg2yzh":"reciver",
-			"bnb14cv29anphrnrvefsppjvyfg54sdzax0lqjmuxv": "reciver",
+			//"bnb14cv29anphrnrvefsppjvyfg54sdzax0lqjmuxv": "reciver",
+			"bnb15sgllgkvc6ktfees7jcanjs3qwrsyt9sgwqhw7": "DAzJVbs66Px13BDo34Zh8xu9pqSiW9V3oRoFqBX2y66A",
+			"bnb1lyl4gquavmgqdtaqd2uejaj80k4mlrnfw8f87w": "3MTViU5tBy57wnArxxSwgo99b2Hx8TZ31dXViDEnJhJh",
 		}
 	)
 
@@ -98,7 +100,7 @@ func TestSubscribeAddress(t *testing.T) {
 
 	//log.Debug("already got scanner:", assetsMgr)
 	scanner := assetsMgr.GetBlockScanner()
-	scanner.SetRescanBlockHeight(26841870)//(25787928)
+	scanner.SetRescanBlockHeight(27022753)//(25787928)
 
 	if scanner == nil {
 		log.Error(symbol, "is not support block scan")
