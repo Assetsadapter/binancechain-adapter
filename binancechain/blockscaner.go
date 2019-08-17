@@ -644,6 +644,9 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 							IsMemo:true,
 							Memo:trx.Memo,
 						}
+
+						tx.SetExtParam("memo", trx.Memo)
+
 						wxID := openwallet.GenTransactionWxID(tx)
 						tx.WxID = wxID
 						ed := result.extractData[denom+":"+sourceKey]
@@ -747,6 +750,9 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 							Memo:trx.Memo,
 							TxType:1,
 						}
+
+						tx.SetExtParam("memo", trx.Memo)
+
 						wxID := openwallet.GenTransactionWxID(tx)
 						tx.WxID = wxID
 						ed.Transaction = tx
@@ -833,6 +839,9 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 								IsMemo:true,
 								Memo:trx.Memo,
 							}
+
+							tx.SetExtParam("memo", trx.Memo)
+							
 							wxID := openwallet.GenTransactionWxID(tx)
 							tx.WxID = wxID
 							ed.Transaction = tx
