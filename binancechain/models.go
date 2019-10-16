@@ -20,13 +20,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/blocktree/go-owcdrivers/binancechainTransaction"
-	"time"
-
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/crypto"
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tidwall/gjson"
+	"time"
 )
 
 type Block struct {
@@ -115,8 +114,10 @@ func NewBlock(json *gjson.Result) *Block {
 	obj.VersionApp = byte(gjson.Get(json.Raw, "block_meta").Get("header").Get("version").Get("app").Uint())
 	obj.ChainID = gjson.Get(json.Raw, "block_meta").Get("header").Get("chain_id").String()
 	obj.Height = gjson.Get(json.Raw, "block_meta").Get("header").Get("height").Uint()
-	timestamp, _ := time.Parse(time.RFC3339Nano, gjson.Get(json.Raw, "block_meta").Get("header").Get("time").String())
-	obj.Timestamp = uint64(timestamp.Unix())
+	if gjson.Get(json.Raw, "block_meta").Get("header").Get("time").String() != "" {
+		timestamp, _ := time.Parse(time.RFC3339Nano, gjson.Get(json.Raw, "block_meta").Get("header").Get("time").String())
+		obj.Timestamp = uint64(timestamp.Unix())
+	}
 	obj.PrevBlockHash = gjson.Get(json.Raw, "block_meta").Get("header").Get("last_block_id").Get("hash").String()
 
 	if gjson.Get(json.Raw, "block_meta").Get("header").Get("num_txs").Uint() != 0 {
