@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	maxExtractingSize = 20           //并发的扫描线程数
+	maxExtractingSize = 20 //并发的扫描线程数
 )
 
 //BNBBlockScanner bnb的区块链扫描器
@@ -250,7 +250,7 @@ func (bs *BNBBlockScanner) scanBlock(height uint64) (*Block, error) {
 		bs.wm.Log.Std.Info("block scanner can not get new block data; unexpected error: %v", err)
 
 		//记录未扫区块
-		unscanRecord := openwallet.NewUnscanRecord(height, "", err.Error(),bs.wm.Symbol())
+		unscanRecord := openwallet.NewUnscanRecord(height, "", err.Error(), bs.wm.Symbol())
 		bs.SaveUnscanRecord(unscanRecord)
 		bs.wm.Log.Std.Info("block height: %d extract failed.", height)
 		return nil, err
@@ -395,7 +395,7 @@ func (bs *BNBBlockScanner) BatchExtractTransaction(blockHeight uint64, blockHash
 				}
 			} else {
 				//记录未扫区块
-				unscanRecord := openwallet.NewUnscanRecord(height, "", "",bs.wm.Symbol())
+				unscanRecord := openwallet.NewUnscanRecord(height, "", "", bs.wm.Symbol())
 				bs.SaveUnscanRecord(unscanRecord)
 				bs.wm.Log.Std.Info("block height: %d extract failed.", height)
 				failed++ //标记保存失败数
@@ -551,6 +551,29 @@ func convertFromAmount(amountStr string, decimals uint64) uint64 {
 	return uint64(r)
 }
 
+func NewCoin(symbol, fullName, denom string) openwallet.Coin {
+	if denom == "BNB" {
+		return openwallet.Coin{
+			Symbol:     symbol,
+			IsContract: false,
+		}
+	} else {
+		return openwallet.Coin{
+			Symbol:     symbol,
+			IsContract: true,
+			ContractID: openwallet.GenContractID(symbol, denom),
+			Contract: openwallet.SmartContract{
+				Symbol:     symbol,
+				ContractID: openwallet.GenContractID(symbol, denom),
+				Address:    denom,
+				Token:      denom,
+				Name:       fullName,
+				Decimals:   0,
+			},
+		}
+	}
+}
+
 //ExtractTransactionData 提取交易单
 func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractResult, scanAddressFunc openwallet.BlockScanAddressFunc) {
 	var (
@@ -564,15 +587,15 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 		if success {
 			feeSourceKey := ""
 			blockhash, _ := bs.wm.RpcClient.getBlockHash(trx.BlockHeight)
-			notifyFee := false
-			feeNotified := false
+			//notifyFee := false
+			//feeNotified := false
 			for _, detail := range trx.TxDetails {
 				denom := detail.Denom
 				for _, fromChk := range detail.From {
 					sourceKey, ok := scanAddressFunc(fromChk.Address)
 					if ok {
 						feeSourceKey = sourceKey
-						notifyFee = true
+						//notifyFee = true
 
 						var fromArray []string
 						var toArray []string
@@ -581,20 +604,9 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 							input := openwallet.TxInput{}
 							input.TxID = trx.TxID
 							input.Address = from.Address
-							input.Amount = strconv.FormatUint(from.Amount, 10)
-							input.Coin = openwallet.Coin{
-								Symbol:bs.wm.Symbol(),
-								IsContract:true,
-								ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-								Contract:openwallet.SmartContract{
-									Symbol:bs.wm.Symbol(),
-									ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-									Address:denom,
-									Token:denom,
-									Name:bs.wm.FullName(),
-									Decimals:0,
-								},
-							}
+							//input.Amount = strconv.FormatUint(from.Amount, 10)
+							input.Amount = convertToAmount(from.Amount, 8)
+							input.Coin = NewCoin(bs.wm.Symbol(), bs.wm.FullName(), denom)
 							input.Index = uint64(i)
 							input.Sid = openwallet.GenTxInputSID(trx.TxID, bs.wm.Symbol(), denom, input.Index)
 							input.CreateAt = createAt
@@ -616,31 +628,33 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 						for _, to := range detail.To {
 							toArray = append(toArray, to.Address+":"+strconv.FormatUint(to.Amount, 10))
 						}
+						var fee uint64
+						var detail2 TxDetail
+						if len(trx.TxDetails) > 1 {
+							fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
+						} else {
+							for _, v := range trx.TxDetails {
+								detail2 = *v
+							}
 
+							if len(detail2.From) > 1 || len(detail2.To) > 1 {
+								fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
+							} else {
+								fee, _ = bs.wm.RpcClient.getFeeByHeight(trx.BlockHeight)
+							}
+						}
 						tx := &openwallet.Transaction{
-							From:fromArray,
-							To:toArray,
-							Fees:"0",
-							Coin:openwallet.Coin{
-								Symbol:bs.wm.Symbol(),
-								IsContract:true,
-								ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-								Contract:openwallet.SmartContract{
-									Symbol:bs.wm.Symbol(),
-									ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-									Address:denom,
-									Token:denom,
-									Name:bs.wm.FullName(),
-									Decimals:0,
-								},
-							},
-							BlockHeight:trx.BlockHeight,
-							BlockHash:blockhash,
-							TxID:trx.TxID,
-							Decimal:0,
-							Status:"1",
-							IsMemo:true,
-							Memo:trx.Memo,
+							From:        fromArray,
+							To:          toArray,
+							Fees:        convertToAmount(fee, 8),
+							Coin:        NewCoin(bs.wm.Symbol(), bs.wm.FullName(), denom),
+							BlockHeight: trx.BlockHeight,
+							BlockHash:   blockhash,
+							TxID:        trx.TxID,
+							Decimal:     0,
+							Status:      "1",
+							IsMemo:      true,
+							Memo:        trx.Memo,
 						}
 
 						tx.SetExtParam("memo", trx.Memo)
@@ -658,107 +672,83 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 					}
 				}
 
-				if notifyFee && !feeNotified{
-					var fee uint64
-					var detail2  TxDetail
-					if len(trx.TxDetails) > 1 {
-						fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
-					} else {
-						for _, v := range trx.TxDetails {
-							detail2  = *v
-						}
-
-						if len(detail2.From) > 1 || len(detail2.To) > 1 {
-							fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
-						} else {
-							fee, _ = bs.wm.RpcClient.getFeeByHeight(trx.BlockHeight)
-						}
-					}
-
-					feeCharge := openwallet.TxInput{}
-					feeCharge.TxID = trx.TxID
-					feeCharge.Address = detail.From[0].Address
-					feeStr := strconv.FormatUint(fee, 10)
-					feeCharge.Amount = feeStr
-					feeCharge.Coin = openwallet.Coin{
-						Symbol:bs.wm.Symbol(),
-						IsContract:true,
-						ContractID:openwallet.GenContractID(bs.wm.Symbol(), "BNB"),
-						Contract:openwallet.SmartContract{
-							Symbol:bs.wm.Symbol(),
-							ContractID:openwallet.GenContractID(bs.wm.Symbol(), "BNB"),
-							Address:"BNB",
-							Token:"",
-							Name:bs.wm.FullName(),
-							Decimals:0,
-						},
-					}
-					feeCharge.Index = 0
-					feeCharge.Sid = openwallet.GenTxInputSID(trx.TxID, bs.wm.Symbol(), "BNB", feeCharge.Index)
-					feeCharge.CreateAt = createAt
-					feeCharge.BlockHeight = trx.BlockHeight
-					feeCharge.BlockHash = blockhash
-					feeCharge.IsMemo = true
-					feeCharge.Memo = trx.Memo
-					feeCharge.TxType = 1
-					if denom == "BNB" {
-						ed := result.extractData["BNB:"+feeSourceKey]
-						if ed == nil {
-							ed = openwallet.NewBlockExtractData()
-							result.extractData["BNB:"+feeSourceKey] = ed
-						}
-
-						ed.TxInputs = append(ed.TxInputs, &feeCharge)
-						ed.Transaction.Fees = strconv.FormatUint(fee, 10)
-
-						feeNotified = true
-					} else {
-						ed := result.extractData["fee:"+feeSourceKey]
-						if ed == nil {
-							ed = openwallet.NewBlockExtractData()
-							result.extractData["fee:"+feeSourceKey] = ed
-						}
-
-						ed.TxInputs = append(ed.TxInputs, &feeCharge)
-
-						tx := &openwallet.Transaction{
-							From:[]string{detail.From[0].Address + ":" + feeStr},
-							To:[]string{""},
-							Amount:feeStr,
-							Fees:"0",
-							Coin:openwallet.Coin{
-								Symbol:bs.wm.Symbol(),
-								IsContract:true,
-								ContractID:openwallet.GenContractID(bs.wm.Symbol(), "BNB"),
-								Contract:openwallet.SmartContract{
-									Symbol:bs.wm.Symbol(),
-									ContractID:openwallet.GenContractID(bs.wm.Symbol(), "BNB"),
-									Address:"BNB",
-									Token:"",
-									Name:bs.wm.FullName(),
-									Decimals:0,
-								},
-							},
-							BlockHash:blockhash,
-							BlockHeight:trx.BlockHeight,
-							TxID:trx.TxID,
-							Decimal:0,
-							Status:"1",
-							IsMemo:true,
-							Memo:trx.Memo,
-							TxType:1,
-						}
-
-						tx.SetExtParam("memo", trx.Memo)
-
-						wxID := openwallet.GenTransactionWxID(tx)
-						tx.WxID = wxID
-						ed.Transaction = tx
-
-						feeNotified = true
-					}
-
-				}
+				//if notifyFee && !feeNotified{
+				//	var fee uint64
+				//	var detail2  TxDetail
+				//	if len(trx.TxDetails) > 1 {
+				//		fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
+				//	} else {
+				//		for _, v := range trx.TxDetails {
+				//			detail2  = *v
+				//		}
+				//
+				//		if len(detail2.From) > 1 || len(detail2.To) > 1 {
+				//			fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
+				//		} else {
+				//			fee, _ = bs.wm.RpcClient.getFeeByHeight(trx.BlockHeight)
+				//		}
+				//	}
+				//
+				//	feeCharge := openwallet.TxInput{}
+				//	feeCharge.TxID = trx.TxID
+				//	feeCharge.Address = detail.From[0].Address
+				//	feeStr := strconv.FormatUint(fee, 10)
+				//	feeCharge.Amount = feeStr
+				//	feeCharge.Coin =NewCoin(bs.wm.Symbol(),bs.wm.FullName(),denom)
+				//	feeCharge.Index = 0
+				//	feeCharge.Sid = openwallet.GenTxInputSID(trx.TxID, bs.wm.Symbol(), "BNB", feeCharge.Index)
+				//	feeCharge.CreateAt = createAt
+				//	feeCharge.BlockHeight = trx.BlockHeight
+				//	feeCharge.BlockHash = blockhash
+				//	feeCharge.IsMemo = true
+				//	feeCharge.Memo = trx.Memo
+				//	feeCharge.TxType = 1
+				//	if denom == "BNB" {
+				//		ed := result.extractData["BNB:"+feeSourceKey]
+				//		if ed == nil {
+				//			ed = openwallet.NewBlockExtractData()
+				//			result.extractData["BNB:"+feeSourceKey] = ed
+				//		}
+				//
+				//		ed.TxInputs = append(ed.TxInputs, &feeCharge)
+				//		ed.Transaction.Fees = strconv.FormatUint(fee, 10)
+				//
+				//		feeNotified = true
+				//	} else {
+				//		ed := result.extractData["fee:"+feeSourceKey]
+				//		if ed == nil {
+				//			ed = openwallet.NewBlockExtractData()
+				//			result.extractData["fee:"+feeSourceKey] = ed
+				//		}
+				//
+				//		ed.TxInputs = append(ed.TxInputs, &feeCharge)
+				//
+				//		tx := &openwallet.Transaction{
+				//			From:[]string{detail.From[0].Address + ":" + feeStr},
+				//			To:[]string{""},
+				//			Amount:feeStr,
+				//			Fees:"0",
+				//			Coin:NewCoin(bs.wm.Symbol(),bs.wm.FullName(),denom) ,
+				//			BlockHash:blockhash,
+				//			BlockHeight:trx.BlockHeight,
+				//			TxID:trx.TxID,
+				//			Decimal:0,
+				//			Status:"1",
+				//			IsMemo:true,
+				//			Memo:trx.Memo,
+				//			TxType:1,
+				//		}
+				//
+				//		tx.SetExtParam("memo", trx.Memo)
+				//
+				//		wxID := openwallet.GenTransactionWxID(tx)
+				//		tx.WxID = wxID
+				//		ed.Transaction = tx
+				//
+				//		feeNotified = true
+				//	}
+				//
+				//}
 
 				for _, toChk := range detail.To {
 					sourceKey, ok := scanAddressFunc(toChk.Address)
@@ -770,20 +760,9 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 							output := openwallet.TxOutPut{}
 							output.TxID = trx.TxID
 							output.Address = to.Address
-							output.Amount = strconv.FormatUint(to.Amount, 10)
-							output.Coin = openwallet.Coin{
-								Symbol:bs.wm.Symbol(),
-								IsContract:true,
-								ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-								Contract:openwallet.SmartContract{
-									Symbol:bs.wm.Symbol(),
-									ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-									Address:denom,
-									Token:"",
-									Name:bs.wm.FullName(),
-									Decimals:0,
-								},
-							}
+							//output.Amount = strconv.FormatUint(to.Amount, 10)
+							output.Amount = convertToAmount(to.Amount, 8)
+							output.Coin = NewCoin(bs.wm.Symbol(), bs.wm.FullName(), denom)
 							output.Index = uint64(i)
 							output.Sid = openwallet.GenTxOutPutSID(trx.TxID, bs.wm.Symbol(), denom, output.Index)
 							output.CreateAt = createAt
@@ -813,29 +792,17 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 						}
 						if ed.Transaction == nil {
 							tx := &openwallet.Transaction{
-								From:fromArray,
-								To:toArray,
-								Fees:"0",
-								Coin:openwallet.Coin{
-									Symbol:bs.wm.Symbol(),
-									IsContract:true,
-									ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-									Contract:openwallet.SmartContract{
-										ContractID:openwallet.GenContractID(bs.wm.Symbol(), denom),
-										Symbol:bs.wm.Symbol(),
-										Address:denom,
-										Token:"",
-										Name:bs.wm.FullName(),
-										Decimals:0,
-									},
-								},
-								BlockHash:blockhash,
-								BlockHeight:trx.BlockHeight,
-								TxID:trx.TxID,
-								Decimal:0,
-								Status:"1",
-								IsMemo:true,
-								Memo:trx.Memo,
+								From:        fromArray,
+								To:          toArray,
+								Fees:        "0",
+								Coin:        NewCoin(bs.wm.Symbol(), bs.wm.FullName(), denom),
+								BlockHash:   blockhash,
+								BlockHeight: trx.BlockHeight,
+								TxID:        trx.TxID,
+								Decimal:     0,
+								Status:      "1",
+								IsMemo:      true,
+								Memo:        trx.Memo,
 							}
 
 							tx.SetExtParam("memo", trx.Memo)
@@ -867,7 +834,7 @@ func (bs *BNBBlockScanner) newExtractDataNotify(height uint64, extractData map[s
 			if err != nil {
 				bs.wm.Log.Error("BlockExtractDataNotify unexpected error:", err)
 				//记录未扫区块
-				unscanRecord := openwallet.NewUnscanRecord(height, "", "ExtractData Notify failed.",bs.wm.Symbol())
+				unscanRecord := openwallet.NewUnscanRecord(height, "", "ExtractData Notify failed.", bs.wm.Symbol())
 				err = bs.SaveUnscanRecord(unscanRecord)
 				if err != nil {
 					bs.wm.Log.Std.Error("block height: %d, save unscan record failed. unexpected error: %v", height, err.Error())
@@ -902,6 +869,7 @@ func (bs *BNBBlockScanner) DeleteUnscanRecordNotFindTX() error {
 	}
 	return nil
 }
+
 //SaveRechargeToWalletDB 保存交易单内的充值记录到钱包数据库
 //func (bs *BNBBlockScanner) SaveRechargeToWalletDB(height uint64, list []*openwallet.Recharge) error {
 //
@@ -1076,6 +1044,7 @@ func (bs *BNBBlockScanner) SaveLocalNewBlock(blockHeight uint64, blockHash strin
 
 	return bs.BlockchainDAI.SaveCurrentBlockHead(header)
 }
+
 //GetBlockHash 根据区块高度获得区块hash
 func (wm *WalletManager) GetBlockHash(height uint64) (string, error) {
 	return wm.RpcClient.getBlockHash(height)

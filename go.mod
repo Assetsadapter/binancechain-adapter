@@ -1,4 +1,4 @@
-module github.com/blocktree/binancechain-adapter
+module github.com/Assetsadapter/binancechain-adapter
 
 go 1.12
 

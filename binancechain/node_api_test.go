@@ -9,10 +9,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-const(
-	nodeurl = ""
+const (
+	nodeurl = "http://1.wallet.info/bnb/"
 )
-
 
 func Test_getBlockHeight(t *testing.T) {
 	c := NewClient(nodeurl, false)
@@ -93,9 +92,9 @@ func Test_getTransaction(t *testing.T) {
 
 func Test_getFee(t *testing.T) {
 	c := NewClient(nodeurl, false)
-	height := uint64(25606408)
+	height := uint64(103731491)
 
-	resp, err := c.getFeeByHeight(height)
+	resp, err := c.getMultiFeeByHeight(height)
 
 	fmt.Println(err)
 	fmt.Println(resp)
@@ -132,7 +131,7 @@ func Test_getTransactionByAddresses(t *testing.T) {
 	addrs := "ARAA8AnUYa4kWwWkiZTTyztG5C6S9MFTx11"
 
 	c := NewClient(nodeurl, false)
-	result, err := c.getMultiAddrTransactions( 0, -1, addrs)
+	result, err := c.getMultiAddrTransactions(0, -1, addrs)
 
 	if err != nil {
 		t.Error("get transactions failed!")

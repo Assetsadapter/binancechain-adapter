@@ -17,10 +17,8 @@ package binancechain
 
 import (
 	"fmt"
-	"path/filepath"
 	"testing"
 
-	"github.com/asdine/storm"
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/pborman/uuid"
@@ -53,9 +51,9 @@ func TestGetBlockHeight(t *testing.T) {
 }
 
 func TestGetLocalNewBlock(t *testing.T) {
-	height, hash, _ := tw.GetLocalNewBlock()
-	t.Logf("GetLocalBlockHeight height = %d \n", height)
-	t.Logf("GetLocalBlockHeight hash = %v \n", hash)
+	//height, hash, _ := tw.GetLocalNewBlock()
+	//t.Logf("GetLocalBlockHeight height = %d \n", height)
+	//t.Logf("GetLocalBlockHeight hash = %v \n", hash)
 }
 
 // func TestSaveLocalBlockHeight(t *testing.T) {
@@ -226,15 +224,15 @@ func TestWallet_GetRecharges(t *testing.T) {
 //}
 
 func TestGetUnscanRecords(t *testing.T) {
-	list, err := tw.GetUnscanRecords()
-	if err != nil {
-		t.Errorf("GetUnscanRecords failed unexpected error: %v\n", err)
-		return
-	}
-
-	for _, r := range list {
-		t.Logf("GetUnscanRecords unscan: %v", r)
-	}
+	//list, err := tw.GetUnscanRecords()
+	//if err != nil {
+	//	t.Errorf("GetUnscanRecords failed unexpected error: %v\n", err)
+	//	return
+	//}
+	//
+	//for _, r := range list {
+	//	t.Logf("GetUnscanRecords unscan: %v", r)
+	//}
 }
 
 // func TestONTBlockScanner_RescanFailedRecord(t *testing.T) {
@@ -268,19 +266,19 @@ func TestONTBlockScanner_GetTransactionsByAddress(t *testing.T) {
 }
 
 func TestGetLocalBlock(t *testing.T) {
-	db, err := storm.Open(filepath.Join(tw.Config.dbPath, tw.Config.BlockchainFile))
-	if err != nil {
-		return
-	}
-	defer db.Close()
-
-	var blocks []*Block
-	err = db.All(&blocks)
-	if err != nil {
-		log.Error("no find")
-		return
-	}
-	log.Info("blocks = ", len(blocks))
+	//db, err := storm.Open(filepath.Join(tw.Config.dbPath, tw.Config.BlockchainFile))
+	//if err != nil {
+	//	return
+	//}
+	//defer db.Close()
+	//
+	//var blocks []*Block
+	//err = db.All(&blocks)
+	//if err != nil {
+	//	log.Error("no find")
+	//	return
+	//}
+	//log.Info("blocks = ", len(blocks))
 }
 
 func Test_GetTransaction(t *testing.T) {

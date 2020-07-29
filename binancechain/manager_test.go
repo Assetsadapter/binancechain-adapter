@@ -23,5 +23,5 @@ func init() {
 	tw = NewWalletManager()
 	tw.Config.RpcUser = ""
 	tw.Config.RpcPassword = ""
-	tw.RpcClient = NewClient("https://stargate.cosmos.network", false)
+	tw.RpcClient = NewClient("http://1.wallet.info/bnb/abci_query", false)
 }
