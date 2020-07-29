@@ -791,10 +791,25 @@ func (bs *BNBBlockScanner) extractTransaction(trx *Transaction, result *ExtractR
 							result.extractData[denom+":"+feeSourceKey] = ed
 						}
 						if ed.Transaction == nil {
+							var fee uint64
+							var detail2 TxDetail
+							if len(trx.TxDetails) > 1 {
+								fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
+							} else {
+								for _, v := range trx.TxDetails {
+									detail2 = *v
+								}
+
+								if len(detail2.From) > 1 || len(detail2.To) > 1 {
+									fee, _ = bs.wm.RpcClient.getMultiFeeByHeight(trx.BlockHeight)
+								} else {
+									fee, _ = bs.wm.RpcClient.getFeeByHeight(trx.BlockHeight)
+								}
+							}
 							tx := &openwallet.Transaction{
 								From:        fromArray,
 								To:          toArray,
-								Fees:        "0",
+								Fees:        convertToAmount(fee, 8),
 								Coin:        NewCoin(bs.wm.Symbol(), bs.wm.FullName(), denom),
 								BlockHash:   blockhash,
 								BlockHeight: trx.BlockHeight,
