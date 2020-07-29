@@ -1091,11 +1091,11 @@ func (bs *BNBBlockScanner) GetBalanceByAddress(address ...string) ([]*openwallet
 	addrsBalance := make([]*openwallet.Balance, 0)
 
 	for _, addr := range address {
-
+		balance, _ := bs.wm.RpcClient.getBalance(addr, "BNB")
 		addrsBalance = append(addrsBalance, &openwallet.Balance{
 			Symbol:  bs.wm.Symbol(),
 			Address: addr,
-			Balance: "0",
+			Balance: convertToAmountWithDecimal(balance.Balance.Uint64(), 8),
 		})
 	}
 
