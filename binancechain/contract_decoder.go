@@ -40,8 +40,16 @@ func NewContractDecoder(wm *WalletManager) *ContractDecoder {
 
 func (decoder *ContractDecoder) GetTokenBalanceByAddress(contract openwallet.SmartContract, address ...string) ([]*openwallet.TokenBalance, error) {
 
-	 var tokenBalanceList []*openwallet.TokenBalance
-
+	var tokenBalanceList []*openwallet.TokenBalance
+	if contract.Address == "" {
+		contract = openwallet.SmartContract{
+			Address:  "BNB",
+			Symbol:   decoder.wm.Config.Symbol,
+			Name:     decoder.wm.FullName(),
+			Token:    "BNB",
+			Decimals: 8,
+		}
+	}
 	for i := 0; i < len(address); i++ {
 		tokenBalance := openwallet.TokenBalance{
 			Contract: &contract,

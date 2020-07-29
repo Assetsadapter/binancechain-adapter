@@ -46,6 +46,17 @@ func NewTransactionDecoder(wm *WalletManager) *TransactionDecoder {
 
 //CreateRawTransaction 创建交易单
 func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+	//没有传contract表示为BNB
+	rawTx.Coin.IsContract = true
+	if rawTx.Coin.Contract.Address == "" {
+		rawTx.Coin.Contract = openwallet.SmartContract{
+			Address:  "BNB",
+			Symbol:   decoder.wm.Config.Symbol,
+			Name:     decoder.wm.FullName(),
+			Token:    "BNB",
+			Decimals: 8,
+		}
+	}
 	if rawTx.Coin.IsContract {
 		return decoder.CreateBNBRawTransaction(wrapper, rawTx)
 	}
@@ -168,7 +179,7 @@ func (decoder *TransactionDecoder) CreateBNBRawTransaction(wrapper openwallet.Wa
 			count.Add(count, a.Balance)
 			if count.Cmp(amount) >= 0 {
 				countList = append(countList, a.Balance.Sub(a.Balance, count.Sub(count, amount)).Uint64())
-				log.Error("The " + rawTx.Coin.Contract.Address + " of the account is enough,"+
+				log.Error("The "+rawTx.Coin.Contract.Address+" of the account is enough,"+
 					" but cannot be sent in just one transaction!\n"+
 					"the amount can be sent in "+string(len(countList))+
 					"times with amounts :\n"+strings.Replace(strings.Trim(fmt.Sprint(countList), "[]"), " ", ",", -1), err)
@@ -196,7 +207,7 @@ func (decoder *TransactionDecoder) CreateBNBRawTransaction(wrapper openwallet.Wa
 
 	if from == "" {
 		if avaliable != "" {
-			return openwallet.Errorf(openwallet.ErrInsufficientFees, "the " + rawTx.Coin.Contract.Address + " balance of address: %s is enough, but which has not enough BNB as fee!", avaliable)
+			return openwallet.Errorf(openwallet.ErrInsufficientFees, "the "+rawTx.Coin.Contract.Address+" balance of address: %s is enough, but which has not enough BNB as fee!", avaliable)
 		}
 		return openwallet.Errorf(openwallet.ErrInsufficientBalanceOfAccount, "the balance: %s is not enough", amountStr)
 	}
@@ -228,7 +239,7 @@ func (decoder *TransactionDecoder) CreateBNBRawTransaction(wrapper openwallet.Wa
 		sequence = uint64(sequenceChain)
 	}
 	memo := rawTx.GetExtParam().Get("memo").String()
-	emptyTrans, hash, err := binancechainTransaction.CreateEmptyTransactionAndHash(from, to,rawTx.Coin.Contract.Address, int64(convertFromAmount(amountStr, rawTx.Coin.Contract.Decimals)), accountNumber, int64(sequence), tx.Source, memo)
+	emptyTrans, hash, err := binancechainTransaction.CreateEmptyTransactionAndHash(from, to, rawTx.Coin.Contract.Address, int64(convertFromAmount(amountStr, rawTx.Coin.Contract.Decimals)), accountNumber, int64(sequence), tx.Source, memo)
 	if err != nil {
 		return openwallet.Errorf(openwallet.ErrCreateRawTransactionFailed, "Failed to create transaction : %s !!", rawTx.Account.AccountID)
 	}
@@ -413,7 +424,6 @@ func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper open
 		}
 		fee := big.NewInt(int64(feeValue)) //(int64(decoder.wm.Config.FeeCharge))
 
-
 		//减去手续费
 		if sumRawTx.Coin.Contract.Address == "BNB" {
 			sumAmount_BI.Sub(sumAmount_BI, fee)
@@ -440,12 +450,12 @@ func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper open
 				//创建一笔手续费交易单
 
 				rawTx := &openwallet.RawTransaction{
-					Coin:    openwallet.Coin{
-						Symbol:"BNB",
-						IsContract:true,
-						Contract:openwallet.SmartContract{
-							Address:"BNB",
-							Decimals:8,
+					Coin: openwallet.Coin{
+						Symbol:     "BNB",
+						IsContract: true,
+						Contract: openwallet.SmartContract{
+							Address:  "BNB",
+							Decimals: 8,
 						},
 					},
 					Account: feesSupportAccount,
@@ -453,7 +463,7 @@ func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper open
 						addrBalance.Address: convertToAmount(fee.Uint64(), 8),
 					},
 					Required: 1,
-					ExtParam:sumRawTx.ExtParam,
+					ExtParam: sumRawTx.ExtParam,
 				}
 
 				createErr := decoder.CreateBNBRawTransaction(
@@ -479,7 +489,6 @@ func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper open
 			}
 		}
 
-
 		sumAmount := convertToAmount(sumAmount_BI.Uint64(), sumRawTx.Coin.Contract.Decimals)
 		fees := convertToAmount(fee.Uint64(), 8)
 
@@ -495,7 +504,7 @@ func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper open
 				sumRawTx.SummaryAddress: sumAmount,
 			},
 			Required: 1,
-			ExtParam:sumRawTx.ExtParam,
+			ExtParam: sumRawTx.ExtParam,
 		}
 
 		createErr := decoder.createRawTransaction(
