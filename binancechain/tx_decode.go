@@ -555,22 +555,21 @@ func (decoder *TransactionDecoder) createRawTransaction(wrapper openwallet.Walle
 	rawTx.FeeRate = rawTx.Fees
 
 	var sequence uint64
-	sequence_db, err := wrapper.GetAddressExtParam(from, decoder.wm.FullName())
-	if err != nil {
-		return err
-	}
-	if sequence_db == nil {
-		sequence = 0
-	} else {
-		sequence = ow.NewString(sequence_db).UInt64()
-	}
+	//sequence_db, err := wrapper.GetAddressExtParam(from, decoder.wm.FullName())
+	//if err != nil {
+	//	return err
+	//}
+	//if sequence_db == nil {
+	//	sequence = 0
+	//} else {
+	//	sequence = ow.NewString(sequence_db).UInt64()
+	//}
 	accountNumber, sequenceChain, err := decoder.wm.RpcClient.getAccountNumberAndSequence(from)
 	if err != nil {
 		return err
 	}
-	if sequenceChain > int64(sequence) {
-		sequence = uint64(sequenceChain)
-	}
+	sequence = uint64(sequenceChain)
+
 	memo := rawTx.GetExtParam().Get("memo").String()
 
 	emptyTrans, hash, err := binancechainTransaction.CreateEmptyTransactionAndHash(from, to, rawTx.Coin.Contract.Address, int64(amount), accountNumber, int64(sequence), tx.Source, memo)
