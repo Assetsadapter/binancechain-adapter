@@ -363,6 +363,16 @@ func (decoder *TransactionDecoder) GetRawTransactionFeeRate() (feeRate string, u
 
 //CreateSummaryRawTransaction 创建汇总交易，返回原始交易单数组
 func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransaction, error) {
+	if sumRawTx.Coin.Symbol == "BNB" {
+		sumRawTx.Coin.Contract = openwallet.SmartContract{
+			Address:  "BNB",
+			Symbol:   decoder.wm.Config.Symbol,
+			Name:     decoder.wm.FullName(),
+			Token:    "BNB",
+			Decimals: 8,
+		}
+		sumRawTx.Coin.IsContract = true
+	}
 	if sumRawTx.Coin.IsContract {
 		return decoder.CreateTokenSummaryRawTransaction(wrapper, sumRawTx)
 	}

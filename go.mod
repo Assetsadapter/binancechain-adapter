@@ -15,6 +15,5 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/tendermint/go-amino v0.14.1
-	github.com/tendermint/tendermint v0.31.2-rc0
 	github.com/tidwall/gjson v1.2.1
 )
