@@ -27,7 +27,6 @@ import (
 	"strings"
 	"time"
 
-	ow "github.com/blocktree/openwallet/common"
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openwallet"
 )
@@ -224,20 +223,7 @@ func (decoder *TransactionDecoder) CreateBNBRawTransaction(wrapper openwallet.Wa
 	}
 
 	var sequence uint64
-	sequence_db, err := wrapper.GetAddressExtParam(from, decoder.wm.FullName())
-	if err != nil {
-		return err
-	}
-
-	if sequence_db == nil {
-		sequence = 0
-	} else {
-		sequence = ow.NewString(sequence_db).UInt64()
-	}
-
-	if sequenceChain > int64(sequence) {
-		sequence = uint64(sequenceChain)
-	}
+	sequence = uint64(sequenceChain)
 	memo := rawTx.GetExtParam().Get("memo").String()
 	emptyTrans, hash, err := binancechainTransaction.CreateEmptyTransactionAndHash(from, to, rawTx.Coin.Contract.Address, int64(convertFromAmount(amountStr, rawTx.Coin.Contract.Decimals)), accountNumber, int64(sequence), tx.Source, memo)
 	if err != nil {
